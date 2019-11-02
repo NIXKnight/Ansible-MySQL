@@ -1,0 +1,75 @@
+---
+# tasks file for Ansible-MySQL
+- name: Set MySQL root Password via Debian Configuration Management System
+  debconf:
+    name: "{{ MYSQL_SRV_APT_PACKAGE }}"
+    question: "{{ MYSQL_SRV_APT_PACKAGE }}/root_password"
+    value: "{{ MYSQL_MASTER_PASSWORD | quote }}"
+    vtype: password
+
+- name: Set the Confirm MySQL root Password via Debian Configuration Management System
+  debconf:
+    name: "{{ MYSQL_SRV_APT_PACKAGE }}"
+    question: "{{ MYSQL_SRV_APT_PACKAGE }}/root_password_again"
+    value: "{{ MYSQL_MASTER_PASSWORD | quote }}"
+    vtype: password
+
+- name: Install MySQL Packages
+  apt:
+    name: "{{ item }}"
+    install_recommends: yes
+    update_cache: yes
+    state: present
+  with_items:
+    - "{{ MYSQL_SRV_APT_PACKAGE }}"
+    - "{{ MYSQL_CLIENT_APT_PACKAGES }}"
+
+- name: Replace MySQL Configuration File
+  template:
+    src: "templates/mysqld.cnf.j2"
+    dest: "{{ MYSQL_CNF_FILE }}"
+  notify: Restart MySQL
+
+- name: Enable Remote MySQL Management with root User
+  mysql_user:
+    login_host:  "{{ MYSQL_ENDPOINT }}"
+    login_port: "{{ MYSQL_PORT }}"
+    login_user: "{{ MYSQL_MASTER_USERNAME }}"
+    login_password: "{{ MYSQL_MASTER_PASSWORD }}"
+    name: "{{ MYSQL_MASTER_USERNAME }}"
+    password: "{{ MYSQL_MASTER_PASSWORD }}"
+    priv: "*.*:ALL,GRANT"
+    append_privs: yes
+    host: "%"
+  when: MYSQL_ENABLE_REMOTE_MGMT
+
+- name: Add .my.cnf for root User
+  template:
+    src: "templates/my.cnf.j2"
+    dest: "/root/.my.cnf"
+  when: ENABLE_ROOT_MY_CNF
+
+- name: Create MySQL Database(s)
+  mysql_db:
+    login_host:  "{{ MYSQL_ENDPOINT }}"
+    login_port: "{{ MYSQL_PORT }}"
+    login_user: "{{ MYSQL_MASTER_USERNAME }}"
+    login_password: "{{ MYSQL_MASTER_PASSWORD }}"
+    name: "{{ item.database }}"
+    state: present
+  when: (item.database != None and item.database != '') or (item is not defined)
+  with_items: "{{ MYSQL_DATABASES }}"
+  
+- name: Create MySQL User(s)
+  mysql_user:
+    login_host:  "{{ MYSQL_ENDPOINT }}"
+    login_port: "{{ MYSQL_PORT }}"
+    login_user: "{{ MYSQL_MASTER_USERNAME }}"
+    login_password: "{{ MYSQL_MASTER_PASSWORD }}"
+    name: "{{ item.username }}"
+    password: "{{ item.password }}"
+    priv: "{{ item.database }}.*:ALL"
+    append_privs: yes
+    host: "%"
+  when: (item.database != None and item.database != '') or (item is not defined)
+  with_items: "{{ MYSQL_DATABASES }}"

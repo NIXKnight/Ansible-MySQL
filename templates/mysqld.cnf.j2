@@ -1,0 +1,41 @@
+# The MySQL database server configuration file.
+# {{ ansible_managed }}
+[mysqld_safe]
+socket = {{ MYSQL_CNF_SOCKET_FILE }}
+nice = 0
+
+[mysqld]
+user = mysql
+pid-file = {{ MYSQL_CNF_PID_FILE }}
+socket = {{ MYSQL_CNF_SOCKET_FILE }}
+port = {{ MYSQL_PORT }}
+basedir = /usr
+datadir = /var/lib/mysql
+tmpdir = /tmp
+lc-messages-dir = /usr/share/mysql
+skip-external-locking
+bind-address = {{ MYSQL_CNF_BIND_ADDRESS }}
+key_buffer_size = {{ MYSQL_CNF_KEY_BUFFER_SIZE }}
+max_allowed_packet = {{ MYSQL_CNF_MAX_ALLOWED_PACKET }}
+thread_stack = {{ MYSQL_CNF_THREAD_STACK }}
+thread_cache_size = {{ MYSQL_CNF_THREAD_CACHE_SIZE }}
+myisam-recover-options = {{ MYSQL_CNF_MYISAM_RECOVER_OPTIONS }}
+max_connections = {{ MYSQL_CNF_MAX_CONNECTIONS }}
+query_cache_limit = {{ MYSQL_CNF_QUERY_CACHE_LIMIT }}
+query_cache_size = {{ MYSQL_CNF_QUERY_CACHE_SIZE }}
+{% if MYSQL_CNF_ENABLE_GENERAL_LOG == True %}
+general_log_file = {{ MYSQL_CNF_GENERAL_LOG_FILE }}
+general_log = 1
+{% endif %}
+log_error = {{ MYSQL_CNF_ERROR_LOG }}
+{% if MYSQL_CNF_ENABLE_SLOW_QUERY_LOG == True %}
+slow_query_log
+slow_query_log_file = {{ MYSQL_SLOW_QUERY_LOG_FILE }}
+long_query_time = {{ MYSQL_SLOW_QUERY_TIME }}
+{% endif %}
+{% if MYSQL_CNF_ENABLE_LOG_NO_INDEX_QUERY == True %}
+log-queries-not-using-indexes
+{% endif %}
+character-set-server = {{ MYSQL_CNF_CHARSET }}
+collation-server = {{ MYSQL_CNF_COLLATION }}
+innodb_file_per_table
